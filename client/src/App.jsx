@@ -3,12 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Building, Search, Star, MessageCircle, Lightbulb, RefreshCw, BarChart3, MapPin, Clock, UserCircle, TrendingUp } from "lucide-react";
+import {
+  Building,
+  Search,
+  Star,
+  MessageCircle,
+  Lightbulb,
+  RefreshCw,
+  BarChart3,
+  MapPin,
+  Clock,
+  UserCircle,
+  TrendingUp,
+} from "lucide-react";
 
 function App() {
   const [formData, setFormData] = useState({
     name: "",
-    location: ""
+    location: "",
   });
   const [businessData, setBusinessData] = useState(null);
   const [currentBusiness, setCurrentBusiness] = useState(null);
@@ -18,69 +30,69 @@ function App() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ""
+        [name]: "",
       }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = "Business name is required";
     }
-    
+
     if (!formData.location.trim()) {
       newErrors.location = "Location is required";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      const response = await fetch('/api/business-data', {
-        method: 'POST',
+      const response = await fetch("/api/business-data", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name.trim(),
-          location: formData.location.trim()
-        })
+          location: formData.location.trim(),
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to analyze business');
+        throw new Error(errorData.message || "Failed to analyze business");
       }
 
       const data = await response.json();
       setBusinessData(data);
       setCurrentBusiness({
         name: formData.name.trim(),
-        location: formData.location.trim()
+        location: formData.location.trim(),
       });
     } catch (error) {
-      console.error('Error submitting business data:', error);
+      console.error("Error submitting business data:", error);
       setErrors({ submit: error.message });
     } finally {
       setIsLoading(false);
@@ -89,24 +101,26 @@ function App() {
 
   const handleRegenerate = async () => {
     if (!currentBusiness) return;
-    
+
     setIsRegenerating(true);
-    
+
     try {
-      const response = await fetch(`/api/regenerate-headline?name=${encodeURIComponent(currentBusiness.name)}&location=${encodeURIComponent(currentBusiness.location)}`);
+      const response = await fetch(
+        `/api/regenerate-headline?name=${encodeURIComponent(currentBusiness.name)}&location=${encodeURIComponent(currentBusiness.location)}`,
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to regenerate headline');
+        throw new Error(errorData.message || "Failed to regenerate headline");
       }
 
       const data = await response.json();
-      setBusinessData(prev => ({
+      setBusinessData((prev) => ({
         ...prev,
-        headline: data.headline
+        headline: data.headline,
       }));
     } catch (error) {
-      console.error('Error regenerating headline:', error);
+      console.error("Error regenerating headline:", error);
       setErrors({ regenerate: error.message });
     } finally {
       setIsRegenerating(false);
@@ -120,13 +134,17 @@ function App() {
 
     return (
       <div className="flex text-yellow-400">
-        {Array(fullStars).fill(0).map((_, i) => (
-          <Star key={i} className="w-4 h-4 fill-current" />
-        ))}
+        {Array(fullStars)
+          .fill(0)
+          .map((_, i) => (
+            <Star key={i} className="w-4 h-4 fill-current" />
+          ))}
         {hasHalfStar && <Star className="w-4 h-4 fill-current opacity-50" />}
-        {Array(emptyStars).fill(0).map((_, i) => (
-          <Star key={i} className="w-4 h-4" />
-        ))}
+        {Array(emptyStars)
+          .fill(0)
+          .map((_, i) => (
+            <Star key={i} className="w-4 h-4" />
+          ))}
       </div>
     );
   };
@@ -141,7 +159,9 @@ function App() {
               <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                 <TrendingUp className="text-white w-4 h-4" />
               </div>
-              <h1 className="text-xl font-semibold text-slate-800">Business Dashboard</h1>
+              <h1 className="text-xl font-semibold text-slate-800">
+                Business Dashboard
+              </h1>
             </div>
             <div className="text-sm text-slate-500 flex items-center">
               <UserCircle className="w-4 h-4 mr-2" />
@@ -153,20 +173,24 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
           {/* Business Form */}
           <div className="lg:col-span-4">
             <Card className="shadow-sm">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
                   <Building className="text-blue-500 w-5 h-5" />
-                  <h2 className="text-lg font-semibold text-slate-800">Business Information</h2>
+                  <h2 className="text-lg font-semibold text-slate-800">
+                    Business Information
+                  </h2>
                 </div>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <Label htmlFor="name" className="text-sm font-medium text-slate-700">
+                    <Label
+                      htmlFor="name"
+                      className="text-sm font-medium text-slate-700"
+                    >
                       Business Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -184,9 +208,12 @@ function App() {
                       </p>
                     )}
                   </div>
-                  
+
                   <div>
-                    <Label htmlFor="location" className="text-sm font-medium text-slate-700">
+                    <Label
+                      htmlFor="location"
+                      className="text-sm font-medium text-slate-700"
+                    >
                       Location <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -204,19 +231,15 @@ function App() {
                       </p>
                     )}
                   </div>
-                  
+
                   {errors.submit && (
                     <p className="text-sm text-red-600 flex items-center">
                       <span className="mr-1">⚠</span>
                       {errors.submit}
                     </p>
                   )}
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={isLoading}
-                  >
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -232,7 +255,7 @@ function App() {
                 </form>
               </CardContent>
             </Card>
-            
+
             {/* Loading State */}
             {isLoading && (
               <Card className="shadow-sm mt-6">
@@ -250,7 +273,7 @@ function App() {
               </Card>
             )}
           </div>
-          
+
           {/* Business Results */}
           <div className="lg:col-span-8">
             {businessData && currentBusiness ? (
@@ -259,7 +282,9 @@ function App() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <BarChart3 className="text-emerald-500 w-5 h-5" />
-                      <h2 className="text-lg font-semibold text-slate-800">Business Analysis</h2>
+                      <h2 className="text-lg font-semibold text-slate-800">
+                        Business Analysis
+                      </h2>
                     </div>
                     <div className="text-sm text-slate-500 flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
@@ -278,16 +303,20 @@ function App() {
                       {currentBusiness.location}
                     </p>
                   </div>
-                  
+
                   {/* Metrics Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                     {/* Rating Card */}
                     <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg p-4 border border-emerald-200">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-emerald-700 mb-1">Google Rating</p>
+                          <p className="text-sm font-medium text-emerald-700 mb-1">
+                            Google Rating
+                          </p>
                           <div className="flex items-center space-x-2">
-                            <span className="text-2xl font-bold text-emerald-800">{businessData.rating}</span>
+                            <span className="text-2xl font-bold text-emerald-800">
+                              {businessData.rating}
+                            </span>
                             {renderStars(businessData.rating)}
                           </div>
                         </div>
@@ -296,15 +325,21 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Reviews Card */}
                     <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-blue-700 mb-1">Total Reviews</p>
+                          <p className="text-sm font-medium text-blue-700 mb-1">
+                            Total Reviews
+                          </p>
                           <div className="flex items-center space-x-2">
-                            <span className="text-2xl font-bold text-blue-800">{businessData.reviews}</span>
-                            <span className="text-sm text-blue-600">reviews</span>
+                            <span className="text-2xl font-bold text-blue-800">
+                              {businessData.reviews}
+                            </span>
+                            <span className="text-sm text-blue-600">
+                              reviews
+                            </span>
                           </div>
                         </div>
                         <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
@@ -313,7 +348,7 @@ function App() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* SEO Headline Section */}
                   <div className="border-t border-slate-200 pt-6">
                     <div className="flex items-center justify-between mb-4">
@@ -321,7 +356,7 @@ function App() {
                         <Lightbulb className="text-yellow-500 w-5 h-5 mr-2" />
                         AI-Generated SEO Headline
                       </h4>
-                      <Button 
+                      <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleRegenerate}
@@ -336,13 +371,13 @@ function App() {
                         <span>Regenerate</span>
                       </Button>
                     </div>
-                    
+
                     <div className="bg-slate-50 rounded-lg p-4">
                       <p className="text-slate-800 text-lg leading-relaxed">
                         "{businessData.headline}"
                       </p>
                     </div>
-                    
+
                     <div className="mt-3 text-sm text-slate-500 flex items-center">
                       <span className="mr-2">🤖</span>
                       <span>Generated by AI • Optimized for local SEO</span>
@@ -364,8 +399,13 @@ function App() {
                   <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <BarChart3 className="text-2xl text-slate-400 w-8 h-8" />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-2">No Business Data Yet</h3>
-                  <p className="text-slate-600 mb-4">Enter your business information to get started with analytics and SEO insights.</p>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                    No Business Data Yet
+                  </h3>
+                  <p className="text-slate-600 mb-4">
+                    Enter your business information to get started with
+                    analytics and SEO insights.
+                  </p>
                   <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
                     <div className="flex items-center">
                       <Star className="text-yellow-400 w-4 h-4 mr-2" />
@@ -392,7 +432,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <p className="text-sm text-slate-500">
-              © 2025 Business Dashboard. Built with React & Tailwind CSS.
+              © 2025 Business Dashboard.
             </p>
             <div className="flex items-center space-x-4 text-sm text-slate-500">
               <span>API Status: Connected</span>
