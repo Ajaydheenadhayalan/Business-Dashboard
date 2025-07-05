@@ -1,85 +1,119 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { apiRequest } from "@/lib/queryClient";
-import { businessSubmissionSchema, type BusinessSubmission } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { Building, Search, Star, MessageCircle, Lightbulb, RefreshCw, BarChart3, MapPin, Clock, UserCircle, TrendingUp } from "lucide-react";
 
-interface BusinessData {
-  rating: number;
-  reviews: number;
-  headline: string;
-}
-
-export default function Dashboard() {
-  const [businessData, setBusinessData] = useState<BusinessData | null>(null);
-  const [currentBusiness, setCurrentBusiness] = useState<{ name: string; location: string } | null>(null);
-  const { toast } = useToast();
-
-  const form = useForm<BusinessSubmission>({
-    resolver: zodResolver(businessSubmissionSchema),
-    defaultValues: {
-      name: "",
-      location: "",
-    },
+function App() {
+  const [formData, setFormData] = useState({
+    name: "",
+    location: ""
   });
+  const [businessData, setBusinessData] = useState(null);
+  const [currentBusiness, setCurrentBusiness] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const submitBusinessMutation = useMutation({
-    mutationFn: async (data: BusinessSubmission) => {
-      const response = await apiRequest("POST", "/api/business-data", data);
-      return response.json();
-    },
-    onSuccess: (data: BusinessData) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = "Business name is required";
+    }
+    
+    if (!formData.location.trim()) {
+      newErrors.location = "Location is required";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/business-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          location: formData.location.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to analyze business');
+      }
+
+      const data = await response.json();
       setBusinessData(data);
       setCurrentBusiness({
-        name: form.getValues("name"),
-        location: form.getValues("location"),
+        name: formData.name.trim(),
+        location: formData.location.trim()
       });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to analyze business",
-        variant: "destructive",
-      });
-    },
-  });
+    } catch (error) {
+      console.error('Error submitting business data:', error);
+      setErrors({ submit: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const regenerateHeadlineMutation = useMutation({
-    mutationFn: async () => {
-      if (!currentBusiness) throw new Error("No business data available");
-      const response = await apiRequest("POST", "/api/regenerate-headline", currentBusiness);
-      return response.json();
-    },
-    onSuccess: (data: { headline: string }) => {
-      if (businessData) {
-        setBusinessData({ ...businessData, headline: data.headline });
+  const handleRegenerate = async () => {
+    if (!currentBusiness) return;
+    
+    setIsRegenerating(true);
+    
+    try {
+      const response = await fetch(`/api/regenerate-headline?name=${encodeURIComponent(currentBusiness.name)}&location=${encodeURIComponent(currentBusiness.location)}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to regenerate headline');
       }
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to regenerate headline",
-        variant: "destructive",
-      });
-    },
-  });
 
-  const onSubmit = (data: BusinessSubmission) => {
-    submitBusinessMutation.mutate(data);
+      const data = await response.json();
+      setBusinessData(prev => ({
+        ...prev,
+        headline: data.headline
+      }));
+    } catch (error) {
+      console.error('Error regenerating headline:', error);
+      setErrors({ regenerate: error.message });
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
-  const handleRegenerate = () => {
-    regenerateHeadlineMutation.mutate();
-  };
-
-  const renderStars = (rating: number) => {
+  const renderStars = (rating) => {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
@@ -130,21 +164,23 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
                     <Label htmlFor="name" className="text-sm font-medium text-slate-700">
                       Business Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       id="name"
-                      {...form.register("name")}
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
                       placeholder="Enter your business name"
                       className="mt-2"
                     />
-                    {form.formState.errors.name && (
+                    {errors.name && (
                       <p className="mt-1 text-sm text-red-600 flex items-center">
                         <span className="mr-1">⚠</span>
-                        {form.formState.errors.name.message}
+                        {errors.name}
                       </p>
                     )}
                   </div>
@@ -155,24 +191,33 @@ export default function Dashboard() {
                     </Label>
                     <Input
                       id="location"
-                      {...form.register("location")}
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
                       placeholder="Enter your business location"
                       className="mt-2"
                     />
-                    {form.formState.errors.location && (
+                    {errors.location && (
                       <p className="mt-1 text-sm text-red-600 flex items-center">
                         <span className="mr-1">⚠</span>
-                        {form.formState.errors.location.message}
+                        {errors.location}
                       </p>
                     )}
                   </div>
                   
+                  {errors.submit && (
+                    <p className="text-sm text-red-600 flex items-center">
+                      <span className="mr-1">⚠</span>
+                      {errors.submit}
+                    </p>
+                  )}
+                  
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={submitBusinessMutation.isPending}
+                    disabled={isLoading}
                   >
-                    {submitBusinessMutation.isPending ? (
+                    {isLoading ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                         Analyzing...
@@ -189,7 +234,7 @@ export default function Dashboard() {
             </Card>
             
             {/* Loading State */}
-            {submitBusinessMutation.isPending && (
+            {isLoading && (
               <Card className="shadow-sm mt-6">
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3 mb-4">
@@ -280,10 +325,10 @@ export default function Dashboard() {
                         variant="ghost"
                         size="sm"
                         onClick={handleRegenerate}
-                        disabled={regenerateHeadlineMutation.isPending}
+                        disabled={isRegenerating}
                         className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
                       >
-                        {regenerateHeadlineMutation.isPending ? (
+                        {isRegenerating ? (
                           <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
                         ) : (
                           <RefreshCw className="w-4 h-4 mr-1" />
@@ -300,8 +345,15 @@ export default function Dashboard() {
                     
                     <div className="mt-3 text-sm text-slate-500 flex items-center">
                       <span className="mr-2">🤖</span>
-                      <span>• Optimized for local SEO</span>
+                      <span>Generated by AI • Optimized for local SEO</span>
                     </div>
+
+                    {errors.regenerate && (
+                      <p className="mt-2 text-sm text-red-600 flex items-center">
+                        <span className="mr-1">⚠</span>
+                        {errors.regenerate}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -340,11 +392,17 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <p className="text-sm text-slate-500">
-              © 2025 Business Dashboard.
+              © 2025 Business Dashboard. Built with React & Tailwind CSS.
             </p>
+            <div className="flex items-center space-x-4 text-sm text-slate-500">
+              <span>API Status: Connected</span>
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+            </div>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+
+export default App;
